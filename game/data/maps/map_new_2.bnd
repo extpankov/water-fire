@@ -1,0 +1,36 @@
+data/maps/map_new_2.png
+water_start 300 300 580 580 p
+fire_start 360 360 580 580 p
+
+water_door 850 190
+fire_door 950 190
+
+diamond 700 500 water
+diamond 840 360 fire
+diamond 173 173 water
+diamond 600 220 fire
+
+wall 0 633 420 667 p
+wall 112 497 523 523 p
+wall 421 524 1023 668 p
+wall 773 386 909 437 p
+wall 526 332 771 407 p
+wall 0 275 135 409 p
+wall 135 385 530 408 p
+wall 251 194 430 241 p
+wall 304 270 439 325 p
+wall 306 244 1022 271 p
+wall 0 0 1024 109 p
+wall 1019 271 1024 523 p
+wall 0 409 3 633 p
+wall 0 109 3 275 p
+wall 1019 110 1024 244 p
+
+lever 165 626
+lever_platform 3 520 3 570 0
+
+button 300 490
+button 835 380
+button_platform 910 390 910 500 0 1
+
+block 570 327

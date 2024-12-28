@@ -1,0 +1,31 @@
+data/maps/map_new_1.png
+water_start 99 99 387 387 p
+fire_start 99 99 490 490 p
+wall 51 423 346 444 p 
+wall 27 226 49 549 p 
+wall 49 523 477 550 p 
+wall 594 525 680 551 p 
+wall 798 523 997 552 p 
+wall 49 325 400 343 p 
+wall 500 375 624 392 p 
+wall 740 375 848 393 p 
+wall 972 321 996 523 p 
+wall 49 224 821 243 p 
+wall 611 383 766 395 p
+wall 895 444 971 522 p 
+wall 400 323 499 392 p
+wall 880 222 991 282 p
+wall 918 281 993 318 p
+wall 828 223 880 269 p
+water_platform 680 523 787 554 p
+lava_platform 482 525 583 554 p
+poison_platform 635 374 734 385 p
+fire_door 90 265
+water_door 190 265
+diamond 525 490 fire
+diamond 720 490 water
+hint 290 380 "USE A, W, D\nto move Watergirl"
+hint 290 490 "USE arrow keys\nto move Fireboy"
+hint 630 600 "Fireboy can only attack lakes of fire,\nand Watergirl can only attack puddles of water"
+hint 700 330 "The poison kills everyone"
+hint 200 170 "To complete the level,\nyou need the characters to enter\nthe correct door."
