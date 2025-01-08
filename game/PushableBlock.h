@@ -25,9 +25,9 @@ private:
     sf::Vector2f velocity;
     bool onGround;
     
-    static constexpr float FRICTION = 3.0f;  // Уменьшил трение
-    static constexpr float MAX_VELOCITY = 150.0f;  // Увеличил максимальную скорость
-    static constexpr float GRAVITY = 800.0f;  // Добавляем гравитацию
+    static constexpr float FRICTION = 3.0f;  
+    static constexpr float MAX_VELOCITY = 150.0f;  
+    static constexpr float GRAVITY = 800.0f;  
 public:
-    static constexpr float PUSH_FORCE = 500.0f;  // Увеличил силу толкания
+    static constexpr float PUSH_FORCE = 500.0f;  
 };

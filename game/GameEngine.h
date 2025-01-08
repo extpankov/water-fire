@@ -15,21 +15,23 @@ public:
     void render();
     
     void change_state(GameState* new_state);
-    sf::RenderWindow& get_window();
+    sf::RenderWindow& get_window() { return window; }
     
+    bool is_music_enabled() const { return music_enabled; }
+    void set_music_enabled(bool enabled) { music_enabled = enabled; }
     
-    void set_music_enabled(bool enabled) { is_music_on = enabled; }
-    void set_sound_enabled(bool enabled) { is_sound_on = enabled; }
-    bool is_music_enabled() const { return is_music_on; }
-    bool is_sound_enabled() const { return is_sound_on; }
-    void toggle_music() { is_music_on = !is_music_on; }
-    void toggle_sound() { is_sound_on = !is_sound_on; }
+    bool is_sound_enabled() const { return sound_enabled; }
+    void set_sound_enabled(bool enabled) { sound_enabled = enabled; }
+    
+    int get_max_level() const { return max_level; }
+    void set_max_level(int level) { max_level = std::max(max_level, level); }
     
 private:
     sf::RenderWindow window;
     GameState* current_state;
-    bool is_music_on = true;
-    bool is_sound_on = true;
+    bool music_enabled = true;
+    bool sound_enabled = true;
+    int max_level = 0;
 };
 
 #endif 

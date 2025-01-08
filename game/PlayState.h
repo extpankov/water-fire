@@ -24,13 +24,11 @@ private:
     Level level; 
     sf::View game_view;
     
-    // Fade effect
     static constexpr float FADE_SPEED = 255.0f;
     float fade_alpha;
     bool is_fading_in;
     sf::RectangleShape fade_rect;
     
-    // Time measurement
     sf::Clock frameClock;
     sf::Time lastFrameTime;
 };

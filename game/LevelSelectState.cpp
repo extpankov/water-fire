@@ -6,8 +6,11 @@
 #include <iostream>
 
 LevelSelectState::LevelSelectState(GameEngine& game) : game(game) {
-    std::cout << "Инициализация состояния выбора уровней" << std::endl;
+    std::cout << "Инициализация состояния выбора уровне1й" << std::endl;
     std::cout << "Загрузка ресурсов выбора уровня..." << std::endl;
+    
+    max_unlocked_level = game.get_max_level();
+    std::cout << "LevelSelectState initialized with max_level: " << max_unlocked_level << std::endl;
     
     if (!background_texture.loadFromFile("data/chose_level_bg.png")) {
         std::cerr << "Ошибка при загрузке фона выбора уровня: data/chose_level_bg.png" << std::endl;
@@ -96,11 +99,12 @@ void LevelSelectState::update() {
             
             sf::Vector2i mousePos = sf::Mouse::getPosition(game.get_window());
             sf::Vector2f worldPos = game.get_window().mapPixelToCoords(mousePos);
-            
-            if (is_point_in_sprite(worldPos, back_button)) {
-                game.change_state(new MenuState(game));
-            } else if (is_point_in_sprite(worldPos, level_progress_sprite)) {
-                game.change_state(new PlayState(game));
+
+            if (game.get_max_level() == 1) {
+                game.change_state(new PlayState(game, "data/maps/map_new_2.bnd"));
+            }
+            else {
+                game.change_state(new PlayState(game, "data/maps/map_new_1.bnd"));
             }
         }
     }

@@ -44,7 +44,6 @@ public:
     bool isDeathAnimationPlaying() const { return isDeathAnimationActive; }
     float getDeathAnimationProgress() const { return deathAnimationProgress; }
 
-    
     static constexpr float FADE_SPEED = 2.0f;
     static constexpr float SETTINGS_ANIMATION_SPEED = 4.0f;
 
@@ -70,16 +69,14 @@ private:
     std::vector<Diamond> diamonds;
     std::vector<Hint> hints;
     std::vector<Door> doors;
-    std::vector<Lever> levers;  
-    std::vector<std::pair<MovingPlatform, size_t>> leverPlatforms;  
+    std::vector<Lever> levers;
+    std::vector<std::pair<MovingPlatform, size_t>> leverPlatforms;
     std::vector<PressureButton> buttons;
-    std::vector<std::pair<ButtonPlatform, std::vector<size_t>>> buttonPlatforms;  
+    std::vector<std::pair<ButtonPlatform, std::vector<size_t>>> buttonPlatforms;
     std::vector<PushableBlock> blocks;
     sf::Vector2f start[2];
-
     Fire fireCharacter;
     Water waterCharacter;
-
     bool isLevelFinished;
     bool isDeathAnimationActive;
     bool isFadingOut;
@@ -88,118 +85,84 @@ private:
     float deathAnimationProgress;
     float fadeOutProgress;
     float levelFinishMenuPosition;
-
     bool onGround;
     float verticalSpeed;
     float lastGroundY;
     bool isMovingLeft;
     bool isMovingRight;
     bool isJumping;
-
     bool waterOnGround;
     float waterVerticalSpeed;
     float waterLastGroundY;
     bool isWaterMovingLeft;
     bool isWaterMovingRight;
     bool isWaterJumping;
-
     float moveSpeed;
     float gravity;
     float jumpSpeed;
     float pixels_per_meter;
     float viewZoomFactor;
-
     bool gameOverSoundPlayed;
     bool isPaused;
     bool settingsMenuActive;
     float settingsMenuPosition;
-
     int finishAnimationStep;
     float finishAnimationTimer;
     bool allDiamondsCollected;
     bool timeUnder30Seconds;
-
     sf::Texture pauseButtonTexture;
     sf::Sprite pauseButton;
-
     sf::Texture menuButtonTexture;
     sf::Sprite menuButtonSprite;
-
     sf::Texture retryButtonTexture;
     sf::Sprite retryButtonSprite;
-
     sf::Texture resumeButtonTexture;
     sf::Sprite resumeButton;
-
     sf::Texture settingsButtonTexture;
     sf::Sprite settingsButton;
-
     sf::Texture musicOnTexture;
     sf::Texture musicOffTexture;
     sf::Sprite musicButton;
-
     sf::Texture soundOnTexture;
     sf::Texture soundOffTexture;
     sf::Sprite soundButton;
-
     sf::Texture okButtonTexture;
     sf::Sprite okButton;
-
     sf::SoundBuffer jumpFireBuffer;
     sf::Sound jumpFireSound;
-
     sf::SoundBuffer jumpWaterBuffer;
     sf::Sound jumpWaterSound;
-
     sf::SoundBuffer diamondBuffer;
     sf::Sound diamondSound;
-
     sf::SoundBuffer deathBuffer;
     sf::Sound deathSound;
-
     sf::SoundBuffer levelMusicBuffer;
     sf::Sound levelMusic;
-
     sf::SoundBuffer levelMusicOverBuffer;
     sf::Sound levelMusicOver;
-
     sf::SoundBuffer gameOverBuffer;
     sf::Sound gameOverSound;
-
     sf::SoundBuffer buttonClickBuffer;
     sf::Sound buttonClickSound;
-
     sf::SoundBuffer waterStepsBuffer;
     sf::SoundBuffer fireStepsBuffer;
     sf::SoundBuffer doorBuffer;
     sf::SoundBuffer levelFinishBuffer;
-    
     sf::Sound waterStepsSound;
     sf::Sound fireStepsSound;
     sf::Sound doorSound;
     sf::Sound levelFinishSound;
-
     sf::RectangleShape darkOverlay;
-
     sf::Texture levelFinishBackgroundTexture;
     sf::Sprite levelFinishBackground;
-
     sf::Clock levelTimer;
-    sf::Time finishTime;  
-
-    
+    sf::Time finishTime;
     sf::Font timerFont;
     sf::Text timerText;
-    
-    
     sf::Texture settingsMenuTexture;
     sf::Sprite settingsMenuSprite;
-    
-    
     sf::Texture pauseMenuBackgroundTexture;
     sf::Sprite pauseMenuBackground;
-
-    
     sf::Texture pairTexture;
     sf::Texture diamondsTexture;
     sf::Texture timeTexture;
@@ -208,8 +171,6 @@ private:
     sf::Texture arrowTexture;
     sf::Texture diamondEmptyTexture;
     sf::Texture diamondFullTexture;
-    
-    
     sf::Sprite pairSprite;
     sf::Sprite diamondsSprite;
     sf::Sprite timeSprite;
@@ -224,13 +185,11 @@ private:
     sf::Sprite diamondFullSprite;
     std::vector<sf::Sprite> diamondEmptySprites;
     std::vector<sf::Sprite> diamondFullSprites;
-
-    
     sf::Texture gameOverTexture;
     sf::Sprite gameOverSprite;
     sf::Texture backgroundTexture;
     sf::Sprite backgroundSprite;
-    
-    
     sf::Sprite finalDiamondSprite;
+    sf::Texture continueButtonTexture;
+    sf::Sprite continueButtonSprite;
 };

@@ -68,7 +68,7 @@ Level::Level(GameEngine& game)
     }
     
     if (!settingsButtonTexture.loadFromFile("data/settings.png")) {
-        std::cerr << "Ошибка при загрузке текстуры кнопки настроек" << std::endl;
+        std::cerr << "Ошибка при загрузке текстур1ы кнопки настроек" << std::endl;
     }
     
     if (!settingsMenuTexture.loadFromFile("data/settings_menu.png")) {
@@ -234,7 +234,9 @@ Level::Level(GameEngine& game)
     if (!diamondFullTexture.loadFromFile("data/finish/diamond_full.png")) {
         std::cerr << "Ошибка при загрузке текстуры diamond_full.png" << std::endl;
     }
-    
+    if (!continueButtonTexture.loadFromFile("data/continue.png")) {
+        std::cerr << "Ошибка при загрузке текстуры continue.png" << std::endl;
+    }
     
     pairSprite.setTexture(pairTexture);
     diamondsSprite.setTexture(diamondsTexture);
@@ -245,7 +247,8 @@ Level::Level(GameEngine& game)
     arrowSprite.setTexture(arrowTexture);
     diamondEmptySprite.setTexture(diamondEmptyTexture);
     diamondFullSprite.setTexture(diamondFullTexture);
-    
+    continueButtonSprite.setTexture(continueButtonTexture);
+    continueButtonSprite.setScale(0.5f, 0.5f);
     
     auto centerOrigin = [](sf::Sprite& sprite) {
         sf::FloatRect bounds = sprite.getLocalBounds();
@@ -261,6 +264,7 @@ Level::Level(GameEngine& game)
     centerOrigin(arrowSprite);
     centerOrigin(diamondEmptySprite);
     centerOrigin(diamondFullSprite);
+    centerOrigin(continueButtonSprite);
 }
 
 Level::~Level() {
@@ -422,6 +426,8 @@ void Level::resetLevel() {
     isWaterJumping = false;
     
     
+    fireCharacter.init();
+    waterCharacter.init();
     fireCharacter.setIdle();
     waterCharacter.setIdle();
     
@@ -448,8 +454,8 @@ void Level::resetLevel() {
 }
 
 void Level::init(const std::string& mapFile) {
-    currentMapFile = mapFile;  
-    std::cout << "Loading map from file: " << mapFile << std::endl;
+    currentMapFile = mapFile;
+    std::cout << "Initializing level with map: " << mapFile << std::endl;
     
     std::fstream bf;
     bf.open(mapFile, std::ios::in);
@@ -782,6 +788,8 @@ void Level::init(const std::string& mapFile) {
     
     fireCharacter.init();
     waterCharacter.init();
+    fireCharacter.setIdle();
+    waterCharacter.setIdle();
     
     fireCharacter.setPosition(sf::Vector2f(start[1].x * pixels_per_meter, start[1].y * pixels_per_meter));
     waterCharacter.setPosition(sf::Vector2f(start[0].x * pixels_per_meter, start[0].y * pixels_per_meter));
@@ -791,9 +799,6 @@ void Level::init(const std::string& mapFile) {
 
     fireCharacter.setScale(sf::Vector2f(0.25f, 0.25f));
     waterCharacter.setScale(sf::Vector2f(0.25f, 0.25f));
-
-    fireCharacter.setIdle();
-    waterCharacter.setIdle();
 
     Diamond::loadTexture();
     if (!diamondBuffer.loadFromFile("data/soundtracks/Diamond.ogg")) {
@@ -937,8 +942,8 @@ void Level::handleInput(const sf::Event& event) {
     if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
         sf::View currentView = game.get_window().getView();
         sf::Vector2i pixelPos = sf::Mouse::getPosition(game.get_window());
+        game.get_window().setView(game.get_window().getDefaultView());
         sf::Vector2f worldPos = game.get_window().mapPixelToCoords(pixelPos);
-        
         
         if (isDeathAnimationActive && deathAnimationProgress >= 1.0f) {
             sf::FloatRect menuBounds = menuButtonSprite.getGlobalBounds();
@@ -959,9 +964,20 @@ void Level::handleInput(const sf::Event& event) {
                 return;
             }
         }
+        else if (isLevelFinished) {
+            sf::FloatRect continueBounds = continueButtonSprite.getGlobalBounds();
+            if (continueBounds.contains(worldPos)) {
+                if (currentMapFile == "data/maps/map_new_1.bnd") {
+                    std::cout << "Setting max level to 1 before transitioning to level select" << std::endl;
+                    game.set_max_level(1);
+                }
+                game.change_state(new LevelSelectState(game));
+                return;
+            }
+        }
         else if (!isDeathAnimationActive && !isFadingOut) {
             if (isPaused) {
-                if (settingsMenuActive) {
+                if (settingsMenuActive && settingsMenuPosition >= 1.0f) {
                     if (isPointInSprite(worldPos, musicButton)) {
                         bool isMusicEnabled = game.is_music_enabled();
                         game.set_music_enabled(!isMusicEnabled);
@@ -980,7 +996,7 @@ void Level::handleInput(const sf::Event& event) {
                     else if (isPointInSprite(worldPos, okButton)) {
                         settingsMenuActive = false;
                     }
-                } else {
+                } else if (!settingsMenuActive || settingsMenuPosition <= 0.0f) {
                     if (isPointInSprite(worldPos, resumeButton)) {
                         isPaused = false;
                         if (game.is_music_enabled()) {
@@ -1093,7 +1109,42 @@ void Level::handleInput(const sf::Event& event) {
 }
 
 void Level::update(float deltaTime) {
-    if (isPaused) return;
+    if (isPaused) {
+        float targetPosition = 1.0f;
+        if (pauseMenuPosition < targetPosition) {
+            pauseMenuPosition = std::min(pauseMenuPosition + 4.0f * deltaTime, targetPosition);
+        }
+        
+        if (settingsMenuActive) {
+            if (settingsMenuPosition < 1.0f) {
+                settingsMenuPosition = std::min(settingsMenuPosition + SETTINGS_ANIMATION_SPEED * deltaTime, 1.0f);
+            }
+        } else {
+            if (settingsMenuPosition > 0.0f) {
+                settingsMenuPosition = std::max(settingsMenuPosition - SETTINGS_ANIMATION_SPEED * deltaTime, 0.0f);
+            }
+        }
+        
+        updatePauseButtonPosition();
+        return;
+    } else {
+        if (pauseMenuPosition > 0.0f) {
+            pauseMenuPosition = std::max(pauseMenuPosition - 4.0f * deltaTime, 0.0f);
+        }
+        if (settingsMenuPosition > 0.0f) {
+            settingsMenuPosition = std::max(settingsMenuPosition - SETTINGS_ANIMATION_SPEED * deltaTime, 0.0f);
+        }
+    }
+    
+    
+    if (game.is_music_enabled() && levelMusic.getStatus() != sf::Sound::Playing && !isLevelFinished && !isDeathAnimationActive) {
+        levelMusic.play();
+    }
+    
+    
+    if (isDeathAnimationActive) {
+        updateDeathEffects(deltaTime);
+    }
     
     if (isLevelFinished) {
         finishAnimationTimer += deltaTime;
@@ -1114,14 +1165,104 @@ void Level::update(float deltaTime) {
     sf::Vector2f firePos = fireCharacter.getPosition();
     sf::Vector2f waterPos = waterCharacter.getPosition();
     
-    updateLevers(deltaTime);
+    
+    for (auto& door : doors) {
+        sf::FloatRect doorBounds = door.getGlobalBounds();
+        
+        
+        float distToWater = std::sqrt(
+            std::pow(waterPos.x - (doorBounds.left + doorBounds.width/2), 2) +
+            std::pow(waterPos.y - (doorBounds.top + doorBounds.height/2), 2)
+        );
+        
+        float distToFire = std::sqrt(
+            std::pow(firePos.x - (doorBounds.left + doorBounds.width/2), 2) +
+            std::pow(firePos.y - (doorBounds.top + doorBounds.height/2), 2)
+        );
+        
+        
+        if (door.getType() == DoorType::Water && distToWater <= 100.f) {
+            door.tryInteract(true);
+        } else if (door.getType() == DoorType::Fire && distToFire <= 100.f) {
+            door.tryInteract(false);
+        } else {
+            door.close();
+        }
+        
+        door.update(deltaTime);
+    }
+    
+    
+    if (!isLevelFinished) {
+        bool allDoorsOpen = true;
+        for (const auto& door : doors) {
+            if (!door.isOpened()) {
+                allDoorsOpen = false;
+                break;
+            }
+        }
+        
+        if (allDoorsOpen && allDiamondsCollected) {
+            isLevelFinished = true;
+            if (game.is_sound_enabled()) {
+                levelFinishSound.play();
+            }
+            levelMusic.stop();
+            finishTime = levelTimer.getElapsedTime();
+            
+            
+            if (currentMapFile == "data/maps/map_new_1.bnd") {
+                std::cout << "Completing level 1, setting max_level to 1" << std::endl;
+                game.set_max_level(1);
+                std::cout << "Current max_level: " << game.get_max_level() << std::endl;
+            }
+            
+            
+            isFadingOut = true;
+            fadeOutProgress = 0.0f;
+            returnToMenu = true;
+        }
+    }
+    
+    
+    for (auto& lever : levers) {
+        
+        if (lever.contains(firePos)) {
+            if (!lever.wasPreviouslyTriggered() && lever.checkAndUpdateApproach(firePos)) {
+                lever.toggle();
+                lever.setTriggered();
+                if (game.is_sound_enabled() && buttonClickSound.getStatus() != sf::Sound::Playing) {
+                    buttonClickSound.play();
+                }
+            }
+        }
+        
+        if (lever.contains(waterPos)) {
+            if (!lever.wasPreviouslyTriggered() && lever.checkAndUpdateApproach(waterPos)) {
+                lever.toggle();
+                lever.setTriggered();
+                if (game.is_sound_enabled() && buttonClickSound.getStatus() != sf::Sound::Playing) {
+                    buttonClickSound.play();
+                }
+            }
+        }
+        
+        lever.update(deltaTime);
+    }
+    
+    
+    for (size_t i = 0; i < leverPlatforms.size(); i++) {
+        auto& [platform, leverIndex] = leverPlatforms[i];
+        if (leverIndex < levers.size()) {
+            platform.update(deltaTime, levers[leverIndex].isActivated());
+        }
+    }
     
     
     for (auto& button : buttons) {
         button.setPressed(button.contains(firePos) || button.contains(waterPos));
         button.update(deltaTime);
     }
-    
     
     for (auto& [platform, buttonIndices] : buttonPlatforms) {
         bool anyButtonPressed = false;
@@ -1134,52 +1275,16 @@ void Level::update(float deltaTime) {
         platform.update(deltaTime, anyButtonPressed);
     }
     
-    
-    for (auto& lever : levers) {
-        if (lever.contains(firePos)) {
-            if (!lever.wasPreviouslyTriggered() && lever.checkAndUpdateApproach(firePos)) {
-                lever.toggle();
-                lever.setTriggered();
-                if (buttonClickSound.getStatus() != sf::Sound::Playing) {
-                    buttonClickSound.play();
-                }
-            }
-        }
-    }
-    
-    
-    for (auto& lever : levers) {
-        if (lever.contains(waterPos)) {
-            if (!lever.wasPreviouslyTriggered() && lever.checkAndUpdateApproach(waterPos)) {
-                lever.toggle();
-                lever.setTriggered();
-                if (buttonClickSound.getStatus() != sf::Sound::Playing) {
-                    buttonClickSound.play();
-                }
-            }
-        }
-    }
-    
     if (!isDeathAnimationActive && !isFadingOut && !isPaused && !isLevelFinished) {
         
-        if (!isLevelFinished) {
-            sf::Time elapsed = levelTimer.getElapsedTime();
-            int minutes = static_cast<int>(elapsed.asSeconds()) / 60;
-            int seconds = static_cast<int>(elapsed.asSeconds()) % 60;
-            
-            std::stringstream ss;
-            ss << std::setfill('0') << std::setw(2) << minutes << ":" 
-               << std::setfill('0') << std::setw(2) << seconds;
-            timerText.setString(ss.str());
-        } else {
-            int minutes = static_cast<int>(finishTime.asSeconds()) / 60;
-            int seconds = static_cast<int>(finishTime.asSeconds()) % 60;
-            
-            std::stringstream ss;
-            ss << std::setfill('0') << std::setw(2) << minutes << ":" 
-               << std::setfill('0') << std::setw(2) << seconds;
-            timerText.setString(ss.str());
-        }
+        sf::Time elapsed = levelTimer.getElapsedTime();
+        int minutes = static_cast<int>(elapsed.asSeconds()) / 60;
+        int seconds = static_cast<int>(elapsed.asSeconds()) % 60;
+        
+        std::stringstream ss;
+        ss << std::setfill('0') << std::setw(2) << minutes << ":" 
+           << std::setfill('0') << std::setw(2) << seconds;
+        timerText.setString(ss.str());
         
         
         sf::FloatRect textBounds = timerText.getLocalBounds();
@@ -1192,7 +1297,11 @@ void Level::update(float deltaTime) {
         
         if (fadeOutProgress >= 1.0f) {
             if (returnToMenu) {
-                game.change_state(new MenuState(game));
+                if (isLevelFinished) {
+                    game.change_state(new LevelSelectState(game));
+                } else {
+                    game.change_state(new MenuState(game));
+                }
             } else {
                 resetLevel();
                 init(currentMapFile);
@@ -1201,239 +1310,11 @@ void Level::update(float deltaTime) {
         }
     }
     
-    if (isPaused) {
-        float targetPosition = 1.0f;
-        if (pauseMenuPosition < targetPosition) {
-            pauseMenuPosition = std::min(pauseMenuPosition + 4.0f * deltaTime, targetPosition);
-        }
-        
-        float targetSettingsPosition = settingsMenuActive ? 1.0f : 0.0f;
-        if (settingsMenuPosition != targetSettingsPosition) {
-            if (settingsMenuActive) {
-                settingsMenuPosition = std::min(settingsMenuPosition + SETTINGS_ANIMATION_SPEED * deltaTime, 1.0f);
-            } else {
-                settingsMenuPosition = std::max(settingsMenuPosition - SETTINGS_ANIMATION_SPEED * deltaTime, 0.0f);
-            }
-            
-            sf::FloatRect menuRect = settingsMenuSprite.getLocalBounds();
-            float startY = GameConstants::WINDOW_HEIGHT + menuRect.height;
-            float endY = GameConstants::WINDOW_HEIGHT * 0.4f;
-            float currentY = startY + (endY - startY) * settingsMenuPosition;
-            
-            settingsMenuSprite.setPosition(GameConstants::WINDOW_WIDTH/2, currentY);
-            
-            sf::FloatRect menuBounds = settingsMenuSprite.getGlobalBounds();
-            float menuCenterY = currentY;
-            
-            musicButton.setPosition(
-                GameConstants::WINDOW_WIDTH/2 - 50.0f,
-                menuCenterY
-            );
-            
-            soundButton.setPosition(
-                GameConstants::WINDOW_WIDTH/2 + 50.0f,
-                menuCenterY
-            );
-            
-            okButton.setPosition(
-                GameConstants::WINDOW_WIDTH/2,
-                menuCenterY + 80.0f
-            );
-        }
-        return;
-    } else {
-        if (pauseMenuPosition > 0.0f) {
-            pauseMenuPosition = std::max(pauseMenuPosition - 4.0f * deltaTime, 0.0f);
-        }
-        settingsMenuPosition = 0.0f;
-    }
     
-    if (game.is_music_enabled() && levelMusic.getStatus() != sf::Sound::Playing && !isLevelFinished && !isDeathAnimationActive) {
-        levelMusic.play();
-    } else if (!game.is_music_enabled() && levelMusic.getStatus() == sf::Sound::Playing) {
-        levelMusic.pause();
-    }
-    
-    
-    for (auto& block : blocks) {
-        sf::Vector2f oldPos = block.getPosition();
-        block.update(deltaTime);
-        sf::Vector2f newPos = oldPos + block.getVelocity() * deltaTime;
-        
-        
-        sf::FloatRect blockBounds = block.getBounds();
-        bool blockOnGround = false;
-        
-        
-        for (const auto& boundary : boundaries) {
-            sf::FloatRect boundaryRect(
-                boundary.point1.x * pixels_per_meter,
-                boundary.point1.y * pixels_per_meter,
-                (boundary.point2.x - boundary.point1.x) * pixels_per_meter,
-                (boundary.point2.y - boundary.point1.y) * pixels_per_meter
-            );
-            
-            
-            sf::FloatRect futureBlockBounds = blockBounds;
-            futureBlockBounds.top = newPos.y - blockBounds.height/2;
-            futureBlockBounds.left = newPos.x - blockBounds.width/2;
-            
-            if (futureBlockBounds.intersects(boundaryRect)) {
-                
-                float overlapLeft = (boundaryRect.left + boundaryRect.width) - futureBlockBounds.left;
-                float overlapRight = (futureBlockBounds.left + futureBlockBounds.width) - boundaryRect.left;
-                float overlapTop = (boundaryRect.top + boundaryRect.height) - futureBlockBounds.top;
-                float overlapBottom = (futureBlockBounds.top + futureBlockBounds.height) - boundaryRect.top;
-                
-                
-                float minOverlap = std::min({std::abs(overlapLeft), std::abs(overlapRight), 
-                                           std::abs(overlapTop), std::abs(overlapBottom)});
-                
-                if (minOverlap == std::abs(overlapBottom) && block.getVelocity().y >= 0) {
-                    
-                    newPos.y = boundaryRect.top - blockBounds.height/2;
-                    blockOnGround = true;
-                }
-                else if (minOverlap == std::abs(overlapTop)) {
-                    
-                    newPos.y = boundaryRect.top + boundaryRect.height + blockBounds.height/2;
-                    block.setVelocity(sf::Vector2f(block.getVelocity().x, 0));
-                }
-                else if (minOverlap == std::abs(overlapLeft)) {
-                    
-                    newPos.x = boundaryRect.left + boundaryRect.width + blockBounds.width/2;
-                    block.setVelocity(sf::Vector2f(0, block.getVelocity().y));
-                }
-                else if (minOverlap == std::abs(overlapRight)) {
-                    
-                    newPos.x = boundaryRect.left - blockBounds.width/2;
-                    block.setVelocity(sf::Vector2f(0, block.getVelocity().y));
-                }
-            }
-        }
-        
-        block.setPosition(newPos);
-        block.setOnGround(blockOnGround);
-    }
-    
-    if (!isLevelFinished) {
+    if (!isDeathAnimationActive && !isFadingOut && !isPaused && !isLevelFinished) {
         updateFireCharacter(deltaTime);
         updateWaterCharacter(deltaTime);
-    }
-    
-    if (!fireCharacter.isAlive() || !waterCharacter.isAlive()) {
-        if (!isDeathAnimationActive) {
-            isDeathAnimationActive = true;
-            deathAnimationProgress = 0.0f;
-            levelMusic.stop();  
-        }
-    }
-    
-    updateDeathEffects(deltaTime);
-    
-    for (auto& door : doors) {
-        sf::FloatRect doorBounds = door.getGlobalBounds();
-        sf::FloatRect waterBounds = waterCharacter.getGlobalBounds();
-        sf::FloatRect fireBounds = fireCharacter.getGlobalBounds();
-        
-        sf::FloatRect interactionBounds = doorBounds;
-        interactionBounds.left -= 50.0f;
-        interactionBounds.top -= 50.0f;
-        interactionBounds.width += 100.0f;
-        interactionBounds.height += 100.0f;
-        
-        bool waterNearby = interactionBounds.intersects(waterBounds) && door.getType() == DoorType::Water;
-        bool fireNearby = interactionBounds.intersects(fireBounds) && door.getType() == DoorType::Fire;
-        
-        if (waterNearby) {
-            door.tryInteract(true);
-        }
-        else if (fireNearby) {
-            door.tryInteract(false);
-        }
-        
-        if (!waterNearby && !fireNearby) {
-            door.close();
-        }
-        
-        door.update(deltaTime);
-    }
-
-    
-    bool waterAtDoor = false;
-    bool fireAtDoor = false;
-    for (const auto& door : doors) {
-        sf::FloatRect doorBounds = door.getGlobalBounds();
-        sf::FloatRect waterBounds = waterCharacter.getGlobalBounds();
-        sf::FloatRect fireBounds = fireCharacter.getGlobalBounds();
-
-        if (door.getType() == DoorType::Water && doorBounds.intersects(waterBounds)) {
-            waterAtDoor = true;
-        }
-        if (door.getType() == DoorType::Fire && doorBounds.intersects(fireBounds)) {
-            fireAtDoor = true;
-        }
-    }
-
-    
-    if (waterAtDoor && fireAtDoor && !isLevelFinished) {
-        bool allDiamondsCollected = true;
-        for (const auto& diamond : diamonds) {
-            if (!diamond.isCollected()) {
-                allDiamondsCollected = false;
-                break;
-            }
-        }
-
-        if (allDiamondsCollected) {
-            isLevelFinished = true;
-            if (game.is_sound_enabled()) {
-                levelFinishSound.play();
-            }
-            levelMusic.stop();
-            finishTime = levelTimer.getElapsedTime();
-        }
-    }
-    
-    for (auto& diamond : diamonds) {
-        if (!diamond.isCollected()) {
-            sf::FloatRect diamondBounds = diamond.getGlobalBounds();
-            
-            if (diamondBounds.intersects(waterCharacter.getGlobalBounds()) && diamond.canCollect(true)) {
-                diamond.collect();
-                if (game.is_sound_enabled() && diamondSound.getStatus() != sf::Sound::Playing) {
-                    diamondSound.play();
-                }
-            }
-            
-            if (diamondBounds.intersects(fireCharacter.getGlobalBounds()) && diamond.canCollect(false)) {
-                diamond.collect();
-                if (game.is_sound_enabled() && diamondSound.getStatus() != sf::Sound::Playing) {
-                    diamondSound.play();
-                }
-            }
-        }
-    }
-    
-    fireCharacter.update(deltaTime);
-    waterCharacter.update(deltaTime);
-    
-    updateLevers(deltaTime);
-    
-    if (isLevelFinished) {
-        finishAnimationTimer += deltaTime;
-        
-        
-        allDiamondsCollected = true;
-        for (const auto& diamond : diamonds) {
-            if (!diamond.isCollected()) {
-                allDiamondsCollected = false;
-                break;
-            }
-        }
-        
-        
-        timeUnder30Seconds = finishTime.asSeconds() < 30.0f;
+        checkDiamonds();
     }
 }
 
@@ -1529,6 +1410,8 @@ bool Level::canCharacterInteractWithPlatform(const sf::FloatRect& characterBound
 
 void Level::updateFireCharacter(float deltaTime) {
     if (!fireCharacter.isAlive()) return;
+    
+    fireCharacter.update(deltaTime);  
     
     sf::Vector2f pos = fireCharacter.getPosition();
     sf::Vector2f newPos = pos;
@@ -1772,7 +1655,9 @@ void Level::updateFireCharacter(float deltaTime) {
 }
 
 void Level::updateWaterCharacter(float deltaTime) {
-    if (!waterCharacter.isAlive()) return; 
+    if (!waterCharacter.isAlive()) return;
+    
+    waterCharacter.update(deltaTime);  
     
     sf::Vector2f pos = waterCharacter.getPosition();
     sf::Vector2f newPos = pos;
@@ -2041,6 +1926,67 @@ void Level::updateWaterCharacter(float deltaTime) {
     waterCharacter.setPosition(newPos);
 }
 
+void Level::checkDiamonds() {
+    
+    bool waterAtDoor = false;
+    bool fireAtDoor = false;
+    for (const auto& door : doors) {
+        sf::FloatRect doorBounds = door.getGlobalBounds();
+        sf::FloatRect waterBounds = waterCharacter.getGlobalBounds();
+        sf::FloatRect fireBounds = fireCharacter.getGlobalBounds();
+
+        if (door.getType() == DoorType::Water && doorBounds.intersects(waterBounds)) {
+            waterAtDoor = true;
+        }
+        if (door.getType() == DoorType::Fire && doorBounds.intersects(fireBounds)) {
+            fireAtDoor = true;
+        }
+    }
+
+    
+    if (waterAtDoor && fireAtDoor && !isLevelFinished) {
+        bool allDiamondsCollected = true;
+        for (const auto& diamond : diamonds) {
+            if (!diamond.isCollected()) {
+                allDiamondsCollected = false;
+                break;
+            }
+        }
+
+        if (allDiamondsCollected) {
+            isLevelFinished = true;
+            if (game.is_sound_enabled()) {
+                levelFinishSound.play();
+            }
+            levelMusic.stop();
+            finishTime = levelTimer.getElapsedTime();
+        }
+    }
+
+    
+    for (auto& diamond : diamonds) {
+        if (!diamond.isCollected()) {
+            sf::FloatRect diamondBounds = diamond.getGlobalBounds();
+            
+            
+            if (diamondBounds.intersects(waterCharacter.getGlobalBounds()) && diamond.canCollect(true)) {
+                diamond.collect();
+                if (game.is_sound_enabled() && diamondSound.getStatus() != sf::Sound::Playing) {
+                    diamondSound.play();
+                }
+            }
+            
+            
+            if (diamondBounds.intersects(fireCharacter.getGlobalBounds()) && diamond.canCollect(false)) {
+                diamond.collect();
+                if (game.is_sound_enabled() && diamondSound.getStatus() != sf::Sound::Playing) {
+                    diamondSound.play();
+                }
+            }
+        }
+    }
+}
+
 void Level::draw(sf::RenderWindow& window, sf::Vector2f viewPos, bool debug) {
     
     sf::View currentView = window.getView();
@@ -2062,10 +2008,8 @@ void Level::draw(sf::RenderWindow& window, sf::Vector2f viewPos, bool debug) {
         hint.draw(window, viewPos, waterCharacter.getPosition(), fireCharacter.getPosition());
     }
 
-    
     drawLevers(window);
 
-    
     for (const auto& button : buttons) {
         button.draw(window);
     }
@@ -2076,7 +2020,6 @@ void Level::draw(sf::RenderWindow& window, sf::Vector2f viewPos, bool debug) {
     fireCharacter.draw(window);
     waterCharacter.draw(window);
     
-    
     for (const auto& block : blocks) {
         block.draw(window);
     }
@@ -2085,8 +2028,6 @@ void Level::draw(sf::RenderWindow& window, sf::Vector2f viewPos, bool debug) {
         drawDeathEffects(window);
     }
     
-    
-    sf::View currentView2 = window.getView();
     window.setView(window.getDefaultView());
     
     if (!isDeathAnimationActive && pauseMenuPosition == 0.0f && !isFadingOut && !isLevelFinished) {
@@ -2094,6 +2035,7 @@ void Level::draw(sf::RenderWindow& window, sf::Vector2f viewPos, bool debug) {
     }
     
     if (pauseMenuPosition > 0.0f) {
+        
         sf::Color overlayColor = sf::Color(0, 0, 0, static_cast<sf::Uint8>(pauseMenuPosition * 128));
         darkOverlay.setFillColor(overlayColor);
         window.draw(darkOverlay);
@@ -2103,31 +2045,62 @@ void Level::draw(sf::RenderWindow& window, sf::Vector2f viewPos, bool debug) {
         float targetY = GameConstants::WINDOW_HEIGHT * 0.4f; 
         float currentY = baseY + (targetY - baseY) * pauseMenuPosition; 
         
+        
+        sf::Color menuColor = sf::Color(255, 255, 255, 255);
+        pauseMenuBackground.setColor(menuColor);
         pauseMenuBackground.setPosition(centerX, currentY);
         window.draw(pauseMenuBackground);
         
-        float buttonOffsetY = currentY - 20.0f;
+        
+        menuButtonSprite.setColor(menuColor);
+        retryButtonSprite.setColor(menuColor);
+        resumeButton.setColor(menuColor);
+        settingsButton.setColor(menuColor);
+        
+        float buttonOffsetY = currentY;
         float spacing = 80.0f;
         float horizontalSpacing = 100.0f;
         
-        menuButtonSprite.setPosition(centerX - horizontalSpacing, buttonOffsetY + spacing);
-        retryButtonSprite.setPosition(centerX + horizontalSpacing, buttonOffsetY + spacing);
-        resumeButton.setPosition(centerX, buttonOffsetY + spacing * 2);
+        menuButtonSprite.setPosition(centerX - horizontalSpacing, buttonOffsetY);
+        retryButtonSprite.setPosition(centerX + horizontalSpacing, buttonOffsetY);
+        resumeButton.setPosition(centerX, buttonOffsetY + spacing);
         
-        float settingsX = centerX + pauseMenuBackground.getGlobalBounds().width/2 - 80.0f;  
-        float settingsY = currentY - pauseMenuBackground.getGlobalBounds().height/2 + 80.0f;  
+        sf::FloatRect menuBounds = pauseMenuBackground.getGlobalBounds();
+        float settingsX = menuBounds.left + menuBounds.width - 80.0f;
+        float settingsY = menuBounds.top + 80.0f;
         settingsButton.setPosition(settingsX, settingsY);
         
         window.draw(menuButtonSprite);
         window.draw(retryButtonSprite);
         window.draw(resumeButton);
+        window.draw(settingsButton);
+    }
+    
+    if (settingsMenuActive && settingsMenuPosition > 0.0f) {
+        sf::FloatRect menuRect = settingsMenuSprite.getLocalBounds();
+        float startY = GameConstants::WINDOW_HEIGHT + menuRect.height;
+        float endY = GameConstants::WINDOW_HEIGHT * 0.4f;
+        float currentY = startY + (endY - startY) * settingsMenuPosition;
         
-        if (settingsMenuPosition > 0.0f) {
-            window.draw(settingsMenuSprite);
-            window.draw(musicButton);
-            window.draw(soundButton);
-            window.draw(okButton);
-        }
+        
+        sf::Color menuColor = sf::Color(255, 255, 255, 255);
+        settingsMenuSprite.setColor(menuColor);
+        settingsMenuSprite.setPosition(GameConstants::WINDOW_WIDTH/2, currentY);
+        
+        
+        musicButton.setColor(menuColor);
+        soundButton.setColor(menuColor);
+        okButton.setColor(menuColor);
+        
+        float menuCenterY = currentY;
+        musicButton.setPosition(GameConstants::WINDOW_WIDTH/2 - 50.0f, menuCenterY);
+        soundButton.setPosition(GameConstants::WINDOW_WIDTH/2 + 50.0f, menuCenterY);
+        okButton.setPosition(GameConstants::WINDOW_WIDTH/2, menuCenterY + 80.0f);
+        
+        window.draw(settingsMenuSprite);
+        window.draw(musicButton);
+        window.draw(soundButton);
+        window.draw(okButton);
     }
     
     if (isFadingOut) {
@@ -2253,7 +2226,18 @@ void Level::draw(sf::RenderWindow& window, sf::Vector2f viewPos, bool debug) {
         window.draw(timerText);
     }
     
-    window.setView(currentView2);
+    if (isLevelFinished) {
+        float buttonX = GameConstants::WINDOW_WIDTH / 2.0f;
+        float buttonY = GameConstants::WINDOW_HEIGHT * 0.7f - 8.0f;  
+        continueButtonSprite.setPosition(buttonX, buttonY);
+        window.draw(continueButtonSprite);
+    }
+    
+    if (darkOverlay.getFillColor().a > 0 && !isLevelFinished) {
+        window.draw(darkOverlay);
+    }
+    
+    window.setView(currentView);
 }
 
 bool Level::isPointInSprite(const sf::Vector2f& point, const sf::Sprite& sprite) const {

@@ -3,9 +3,7 @@
 #include <unistd.h>
 #include <SFML/Audio.hpp>
 
-
 sf::Texture Door::spriteSheet;
-
 
 const float ANIMATION_SPEED = 1.5f;  
 
@@ -17,7 +15,6 @@ Door::Door(DoorType type) : scale(1.0f), isDragging(false), selectedSprite(nullp
     }
     doorSound.setBuffer(doorSoundBuffer);
     doorSound.setVolume(100.0f);  
-    
     
     if (doorType == DoorType::Fire) {
         
@@ -121,14 +118,8 @@ void Door::loadTextures() {
     doorIcon.setTextureRect(iconRect);
     
     
-    doorBackground.setScale(scale, scale);
-    doorFrame.setScale(scale, scale);
-    doorBase.setScale(scale, scale);
-    doorIcon.setScale(scale, scale);
-    
-    
-    doorFrame.setOrigin(0, 0);
     doorBackground.setOrigin(0, 0);
+    doorFrame.setOrigin(0, 0);
     doorBase.setOrigin(0, 0);
     doorIcon.setOrigin(0, 0);
     
@@ -136,12 +127,10 @@ void Door::loadTextures() {
     std::cout << "\nFinal sprite settings:\n";
     auto printSprite = [](const sf::Sprite& sprite, const std::string& name) {
         const sf::IntRect& rect = sprite.getTextureRect();
-        const sf::Vector2f& scale = sprite.getScale();
         const sf::Vector2f& origin = sprite.getOrigin();
         std::cout << name << ":\n"
                  << "  TextureRect: (" << rect.left << ", " << rect.top << ", " 
                  << rect.width << ", " << rect.height << ")\n"
-                 << "  Scale: " << scale.x << ", " << scale.y << "\n"
                  << "  Origin: " << origin.x << ", " << origin.y << "\n";
     };
     
@@ -175,7 +164,6 @@ void Door::updateSpritePositions() {
 }
 
 void Door::update(float deltaTime) {
-    
     if (!doorBackground.getTexture() || !doorFrame.getTexture() || 
         !doorBase.getTexture() || !doorIcon.getTexture()) {
         std::cerr << "Error: Sprites lost texture during update! Reloading...\n";
@@ -197,7 +185,6 @@ void Door::update(float deltaTime) {
         }
     }
 
-    
     float frameOffsetX = 0;  
     float frameOffsetY = 0;
     
@@ -215,13 +202,10 @@ void Door::update(float deltaTime) {
     doorBase.setPosition(position.x + baseOffsetX, position.y + baseOffsetY);
     doorIcon.setPosition(position.x + iconOffsetX, position.y + iconOffsetY);
     
-    
     int remainingHeight = static_cast<int>(baseRect.height * (1.0f - animationProgress));
     
     if (remainingHeight > 0) {
-        
         int cutFromTop = baseRect.height - remainingHeight;
-        
         
         doorBase.setTextureRect(sf::IntRect(
             baseRect.left,
@@ -230,36 +214,19 @@ void Door::update(float deltaTime) {
             remainingHeight
         ));
         
-        
         int iconBottom = iconRect.top + iconRect.height - baseRect.top;  
         if (cutFromTop < iconBottom) {
             int iconCutFromTop = std::max(0, cutFromTop - (iconRect.top - baseRect.top));
-            int iconRemainingHeight = iconRect.height - iconCutFromTop;
-            
-            if (iconRemainingHeight > 0) {
+            if (iconCutFromTop < iconRect.height) {
                 doorIcon.setTextureRect(sf::IntRect(
                     iconRect.left,
                     iconRect.top + iconCutFromTop,
                     iconRect.width,
-                    iconRemainingHeight
+                    iconRect.height - iconCutFromTop
                 ));
+                doorIcon.setPosition(position.x + iconOffsetX, position.y + iconOffsetY + iconCutFromTop);
             }
         }
-    }
-
-    
-    static bool firstUpdate = true;
-    if (firstUpdate) {
-        std::cout << "\nSprite state after first update:\n";
-        std::cout << "Background texture rect: " << doorBackground.getTextureRect().left << ", "
-                 << doorBackground.getTextureRect().top << ", "
-                 << doorBackground.getTextureRect().width << ", "
-                 << doorBackground.getTextureRect().height << "\n";
-        std::cout << "Frame texture rect: " << doorFrame.getTextureRect().left << ", "
-                 << doorFrame.getTextureRect().top << ", "
-                 << doorFrame.getTextureRect().width << ", "
-                 << doorFrame.getTextureRect().height << "\n";
-        firstUpdate = false;
     }
 }
 

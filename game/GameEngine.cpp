@@ -1,13 +1,33 @@
 #include "GameEngine.h"
 #include "GameConstants.h"
 #include <iostream>
+#include <fstream>
 
-GameEngine::GameEngine() : current_state(nullptr) {
+GameEngine::GameEngine() : window(sf::VideoMode(GameConstants::WINDOW_WIDTH, GameConstants::WINDOW_HEIGHT), 
+                                "Water & Fire Game", sf::Style::Close),
+                          current_state(nullptr),
+                          max_level(0) {
     std::cout << "Начало игры" << std::endl;
+    
+    std::ifstream progress_file("progress.txt");
+    if (progress_file.is_open()) {
+        progress_file >> max_level;
+        progress_file.close();
+        std::cout << "Loaded progress: max_level = " << max_level << std::endl;
+    }
 }
 
 GameEngine::~GameEngine() {
-    delete current_state;
+    std::ofstream progress_file("progress.txt");
+    if (progress_file.is_open()) {
+        progress_file << max_level;
+        progress_file.close();
+        std::cout << "Saved progress: max_level = " << max_level << std::endl;
+    }
+    
+    if (current_state) {
+        delete current_state;
+    }
 }
 
 bool GameEngine::init() {
@@ -85,12 +105,9 @@ void GameEngine::render() {
 }
 
 void GameEngine::change_state(GameState* new_state) {
+    std::cout << "Changing game state. Current max_level: " << max_level << std::endl;
     if (current_state) {
         delete current_state;
     }
     current_state = new_state;
-}
-
-sf::RenderWindow& GameEngine::get_window() {
-    return window;
 }
